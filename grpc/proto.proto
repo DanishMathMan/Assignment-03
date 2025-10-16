@@ -7,6 +7,7 @@ message ChatMessage {
   int64 logical_timestamp = 1;
   string message = 2;
   LogMessage log_message = 3;
+  Client client = 4;
 }
 
 message Client {
@@ -32,7 +33,5 @@ service ChitChatService {
   //user instructs they disconnect, expecting nothing in return. Note the server will then send a message to all other
   //users (in their Connect rpc running concurrently) that the user has disconnecting.
   rpc Disconnect(Client) returns (Empty);
-
   rpc SendChat(ChatMessage) returns (Empty);
-
 }
