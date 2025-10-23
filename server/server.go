@@ -10,8 +10,6 @@ import (
 
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 type ChitChatServiceServer struct {
@@ -37,6 +35,7 @@ type Connection struct {
 }
 
 func (server *ChitChatServiceServer) SendChat(ctx context.Context, in *proto.ChatMessage) (*proto.Empty, error) {
+
 	//Check validity of message
 	if !validMessage(in) {
 		errorMessage := proto.ChatMessage{Message: "Invalid Chat Message", LogicalTimestamp: int64(server.logicalTimestamp)}
@@ -59,6 +58,8 @@ func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.Empt
 	channel := make(chan *proto.ChatMessage, 1)
 	connection := Connection{user: &user, messageChan: channel}
 	server.connectionPool[id] = connection
+	logMsg := proto.ChatMessage{Message: "Someone joined"} //TODO make into LogMessage
+	server.SendChat(ctx, &logMsg)
 	//return the user
 	return &user, nil //error should
 }
@@ -82,7 +83,10 @@ func (server *ChitChatServiceServer) Listen(client *proto.User, stream grpc.Serv
 }
 
 func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.User) (*proto.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Disconnect not implemented")
+	for _, conn := range server.connectionPool {
+		conn.messageChan <- &proto.ChatMessage{Message: fmt.Sprintf("[Client: %d Left the chat at LT: %d] ", 1, 1), LogicalTimestamp: 1, Client: -1}
+	}
+	return nil, nil
 }
 
 func main() {
@@ -112,7 +116,7 @@ func (server *ChitChatServiceServer) startServer() {
 
 func validMessage(message *proto.ChatMessage) bool {
 
-	if utf8.RuneCountInString(message.Message) > 128 {
+	if len(message.Message) > 128 {
 		return false
 	}
 

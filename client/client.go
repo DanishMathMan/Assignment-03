@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -64,6 +65,11 @@ func main() {
 				log.Println(errSend)
 			}
 			time_stamp := 1 //place holder
+			if strings.Contains(msg, "--exit") {
+				fmt.Println("Bye")
+				client.Disconnect(context.Background(), &proto.User{})
+				os.Exit(0)
+			}
 			chatMessage := proto.ChatMessage{Message: msg, LogicalTimestamp: int64(time_stamp)}
 			client.SendChat(context.Background(), &chatMessage)
 		}
