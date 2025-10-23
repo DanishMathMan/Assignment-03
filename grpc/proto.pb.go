@@ -27,6 +27,7 @@ type ChatMessage struct {
 	LogicalTimestamp int64                  `protobuf:"varint,1,opt,name=logical_timestamp,json=logicalTimestamp,proto3" json:"logical_timestamp,omitempty"`
 	Message          string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
 	LogMessage       *LogMessage            `protobuf:"bytes,3,opt,name=log_message,json=logMessage,proto3" json:"log_message,omitempty"`
+	Client           *User                  `protobuf:"bytes,4,opt,name=client,proto3" json:"client,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -82,27 +83,34 @@ func (x *ChatMessage) GetLogMessage() *LogMessage {
 	return nil
 }
 
-type Client struct {
+func (x *ChatMessage) GetClient() *User {
+	if x != nil {
+		return x.Client
+	}
+	return nil
+}
+
+type User struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *Client) Reset() {
-	*x = Client{}
+func (x *User) Reset() {
+	*x = User{}
 	mi := &file_grpc_proto_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *Client) String() string {
+func (x *User) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*Client) ProtoMessage() {}
+func (*User) ProtoMessage() {}
 
-func (x *Client) ProtoReflect() protoreflect.Message {
+func (x *User) ProtoReflect() protoreflect.Message {
 	mi := &file_grpc_proto_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -114,12 +122,12 @@ func (x *Client) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Client.ProtoReflect.Descriptor instead.
-func (*Client) Descriptor() ([]byte, []int) {
+// Deprecated: Use User.ProtoReflect.Descriptor instead.
+func (*User) Descriptor() ([]byte, []int) {
 	return file_grpc_proto_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *Client) GetId() int32 {
+func (x *User) GetId() int32 {
 	if x != nil {
 		return x.Id
 	}
@@ -129,7 +137,7 @@ func (x *Client) GetId() int32 {
 type LogMessage struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	LogicalTimestamp int64                  `protobuf:"varint,1,opt,name=logical_timestamp,json=logicalTimestamp,proto3" json:"logical_timestamp,omitempty"`
-	ComponentName    string                 `protobuf:"bytes,2,opt,name=component_name,json=componentName,proto3" json:"component_name,omitempty"` //server/client
+	ComponentName    string                 `protobuf:"bytes,2,opt,name=component_name,json=componentName,proto3" json:"component_name,omitempty"` //server/client id
 	EventType        string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`             //join, disconnect
 	Identifiers      []int64                `protobuf:"varint,4,rep,packed,name=identifiers,proto3" json:"identifiers,omitempty"`
 	unknownFields    protoimpl.UnknownFields
@@ -235,13 +243,14 @@ var File_grpc_proto_proto protoreflect.FileDescriptor
 
 const file_grpc_proto_proto_rawDesc = "" +
 	"\n" +
-	"\x10grpc/proto.proto\"\x82\x01\n" +
+	"\x10grpc/proto.proto\"\xa1\x01\n" +
 	"\vChatMessage\x12+\n" +
 	"\x11logical_timestamp\x18\x01 \x01(\x03R\x10logicalTimestamp\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12,\n" +
 	"\vlog_message\x18\x03 \x01(\v2\v.LogMessageR\n" +
-	"logMessage\"\x18\n" +
-	"\x06Client\x12\x0e\n" +
+	"logMessage\x12\x1d\n" +
+	"\x06client\x18\x04 \x01(\v2\x05.UserR\x06client\"\x16\n" +
+	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\"\xa1\x01\n" +
 	"\n" +
 	"LogMessage\x12+\n" +
@@ -250,11 +259,13 @@ const file_grpc_proto_proto_rawDesc = "" +
 	"\n" +
 	"event_type\x18\x03 \x01(\tR\teventType\x12 \n" +
 	"\videntifiers\x18\x04 \x03(\x03R\videntifiers\"\a\n" +
-	"\x05Empty2v\n" +
-	"\x0fChitChatService\x12\"\n" +
-	"\aConnect\x12\a.Client\x1a\f.ChatMessage0\x01\x12\x1d\n" +
+	"\x05Empty2\xb5\x01\n" +
+	"\x0fChitChatService\x12\x18\n" +
+	"\aConnect\x12\x06.Empty\x1a\x05.User\x12\x1f\n" +
+	"\x06Listen\x12\x05.User\x1a\f.ChatMessage0\x01\x12(\n" +
+	"\x0eServerToClient\x12\f.ChatMessage\x1a\x06.Empty(\x01\x12\x1b\n" +
 	"\n" +
-	"Disconnect\x12\a.Client\x1a\x06.Empty\x12 \n" +
+	"Disconnect\x12\x05.User\x1a\x06.Empty\x12 \n" +
 	"\bSendChat\x12\f.ChatMessage\x1a\x06.EmptyB\x1aZ\x18Assignment-03/grpc/protob\x06proto3"
 
 var (
@@ -272,23 +283,28 @@ func file_grpc_proto_proto_rawDescGZIP() []byte {
 var file_grpc_proto_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_grpc_proto_proto_goTypes = []any{
 	(*ChatMessage)(nil), // 0: ChatMessage
-	(*Client)(nil),      // 1: Client
+	(*User)(nil),        // 1: User
 	(*LogMessage)(nil),  // 2: LogMessage
 	(*Empty)(nil),       // 3: Empty
 }
 var file_grpc_proto_proto_depIdxs = []int32{
 	2, // 0: ChatMessage.log_message:type_name -> LogMessage
-	1, // 1: ChitChatService.Connect:input_type -> Client
-	1, // 2: ChitChatService.Disconnect:input_type -> Client
-	0, // 3: ChitChatService.SendChat:input_type -> ChatMessage
-	0, // 4: ChitChatService.Connect:output_type -> ChatMessage
-	3, // 5: ChitChatService.Disconnect:output_type -> Empty
-	3, // 6: ChitChatService.SendChat:output_type -> Empty
-	4, // [4:7] is the sub-list for method output_type
-	1, // [1:4] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1, // 1: ChatMessage.client:type_name -> User
+	3, // 2: ChitChatService.Connect:input_type -> Empty
+	1, // 3: ChitChatService.Listen:input_type -> User
+	0, // 4: ChitChatService.ServerToClient:input_type -> ChatMessage
+	1, // 5: ChitChatService.Disconnect:input_type -> User
+	0, // 6: ChitChatService.SendChat:input_type -> ChatMessage
+	1, // 7: ChitChatService.Connect:output_type -> User
+	0, // 8: ChitChatService.Listen:output_type -> ChatMessage
+	3, // 9: ChitChatService.ServerToClient:output_type -> Empty
+	3, // 10: ChitChatService.Disconnect:output_type -> Empty
+	3, // 11: ChitChatService.SendChat:output_type -> Empty
+	7, // [7:12] is the sub-list for method output_type
+	2, // [2:7] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_grpc_proto_proto_init() }
