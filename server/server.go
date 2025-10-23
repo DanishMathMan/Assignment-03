@@ -2,7 +2,6 @@ package main
 
 import (
 	proto "Assignment-03/grpc"
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -38,12 +37,11 @@ type Connection struct {
 }
 
 func (server *ChitChatServiceServer) SendChat(ctx context.Context, in *proto.ChatMessage) (*proto.Empty, error) {
-
-	fmt.Println(in.Message)
-
 	//Check validity of message
 	if !validMessage(in) {
-		return nil, errors.New("invalid message")
+		errorMessage := proto.ChatMessage{Message: "Invalid Chat Message", LogicalTimestamp: int64(server.logicalTimestamp)}
+		server.connectionPool[in.Client].messageChan <- &errorMessage
+		return nil, nil
 	}
 
 	for _, conn := range server.connectionPool {
@@ -114,7 +112,7 @@ func (server *ChitChatServiceServer) startServer() {
 
 func validMessage(message *proto.ChatMessage) bool {
 
-	if len(message.Message) > 128 {
+	if utf8.RuneCountInString(message.Message) > 128 {
 		return false
 	}
 
