@@ -44,10 +44,6 @@ func main() {
 		for {
 			msg, err := stream.Recv()
 
-			if msg != nil {
-				fmt.Println(msg)
-			}
-
 			if err == io.EOF {
 				continue
 			}
@@ -68,11 +64,7 @@ func main() {
 				log.Println(errSend)
 			}
 			time_stamp := 1 //place holder
-			logMessage := proto.LogMessage{
-				ComponentName:    string(utility.CLIENT),
-				LogicalTimestamp: int64(time_stamp),
-				EventType:        string(utility.CLIENT_MESSAGE_SEND)}
-			chatMessage := proto.ChatMessage{Message: msg, LogicalTimestamp: int64(time_stamp), LogMessage: &logMessage}
+			chatMessage := proto.ChatMessage{Message: msg, LogicalTimestamp: int64(time_stamp)}
 			client.SendChat(context.Background(), &chatMessage)
 		}
 	}()

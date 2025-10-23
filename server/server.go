@@ -67,26 +67,20 @@ func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.Empt
 
 func (server *ChitChatServiceServer) Listen(client *proto.User, stream grpc.ServerStreamingServer[proto.ChatMessage]) error {
 
-	server.wg.Go(func() {
-		// TODO listen on message channel and send to stream what the message was
-		for {
-			fmt.Printf("In the for loop")
-			msg := <-server.connectionPool[client.Id].messageChan
+	// TODO listen on message channel and send to stream what the message was
+	for {
+		msg := <-server.connectionPool[client.Id].messageChan
 
-			fmt.Printf("Message in channel: %s \n", msg.Message)
+		fmt.Printf("Message in channel: %s \n", msg.Message)
 
-			//TODO check if message is a closing message i.e. the client has disconnected, then stop go routine if it is
-			err := stream.Send(msg)
-			if err != nil {
-				fmt.Println("error in sending message")
-			}
-
-			fmt.Println("Send message via stream")
+		//TODO check if message is a closing message i.e. the client has disconnected, then stop go routine if it is
+		err := stream.Send(msg)
+		if err != nil {
+			fmt.Println("error in sending message")
 		}
-		fmt.Printf("Out of the for loop")
-	})
-	fmt.Printf("out of the wait group for loop")
-	return nil
+
+		fmt.Println("Send message via stream")
+	}
 }
 
 func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.User) (*proto.Empty, error) {

@@ -6,8 +6,7 @@ option go_package = "Assignment-03/grpc/proto";
 message ChatMessage {
   int64 logical_timestamp = 1;
   string message = 2;
-  LogMessage log_message = 3;
-  User client = 4;
+  int32 client = 3;
 }
 
 message User{

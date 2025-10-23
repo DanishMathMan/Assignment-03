@@ -26,8 +26,7 @@ type ChatMessage struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	LogicalTimestamp int64                  `protobuf:"varint,1,opt,name=logical_timestamp,json=logicalTimestamp,proto3" json:"logical_timestamp,omitempty"`
 	Message          string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	LogMessage       *LogMessage            `protobuf:"bytes,3,opt,name=log_message,json=logMessage,proto3" json:"log_message,omitempty"`
-	Client           *User                  `protobuf:"bytes,4,opt,name=client,proto3" json:"client,omitempty"`
+	Client           int32                  `protobuf:"varint,3,opt,name=client,proto3" json:"client,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -76,18 +75,11 @@ func (x *ChatMessage) GetMessage() string {
 	return ""
 }
 
-func (x *ChatMessage) GetLogMessage() *LogMessage {
-	if x != nil {
-		return x.LogMessage
-	}
-	return nil
-}
-
-func (x *ChatMessage) GetClient() *User {
+func (x *ChatMessage) GetClient() int32 {
 	if x != nil {
 		return x.Client
 	}
-	return nil
+	return 0
 }
 
 type User struct {
@@ -243,13 +235,11 @@ var File_grpc_proto_proto protoreflect.FileDescriptor
 
 const file_grpc_proto_proto_rawDesc = "" +
 	"\n" +
-	"\x10grpc/proto.proto\"\xa1\x01\n" +
+	"\x10grpc/proto.proto\"l\n" +
 	"\vChatMessage\x12+\n" +
 	"\x11logical_timestamp\x18\x01 \x01(\x03R\x10logicalTimestamp\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12,\n" +
-	"\vlog_message\x18\x03 \x01(\v2\v.LogMessageR\n" +
-	"logMessage\x12\x1d\n" +
-	"\x06client\x18\x04 \x01(\v2\x05.UserR\x06client\"\x16\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x16\n" +
+	"\x06client\x18\x03 \x01(\x05R\x06client\"\x16\n" +
 	"\x04User\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x05R\x02id\"\xa1\x01\n" +
 	"\n" +
@@ -259,11 +249,10 @@ const file_grpc_proto_proto_rawDesc = "" +
 	"\n" +
 	"event_type\x18\x03 \x01(\tR\teventType\x12 \n" +
 	"\videntifiers\x18\x04 \x03(\x03R\videntifiers\"\a\n" +
-	"\x05Empty2\xb5\x01\n" +
+	"\x05Empty2\x8b\x01\n" +
 	"\x0fChitChatService\x12\x18\n" +
 	"\aConnect\x12\x06.Empty\x1a\x05.User\x12\x1f\n" +
-	"\x06Listen\x12\x05.User\x1a\f.ChatMessage0\x01\x12(\n" +
-	"\x0eServerToClient\x12\f.ChatMessage\x1a\x06.Empty(\x01\x12\x1b\n" +
+	"\x06Listen\x12\x05.User\x1a\f.ChatMessage0\x01\x12\x1b\n" +
 	"\n" +
 	"Disconnect\x12\x05.User\x1a\x06.Empty\x12 \n" +
 	"\bSendChat\x12\f.ChatMessage\x1a\x06.EmptyB\x1aZ\x18Assignment-03/grpc/protob\x06proto3"
@@ -288,23 +277,19 @@ var file_grpc_proto_proto_goTypes = []any{
 	(*Empty)(nil),       // 3: Empty
 }
 var file_grpc_proto_proto_depIdxs = []int32{
-	2, // 0: ChatMessage.log_message:type_name -> LogMessage
-	1, // 1: ChatMessage.client:type_name -> User
-	3, // 2: ChitChatService.Connect:input_type -> Empty
-	1, // 3: ChitChatService.Listen:input_type -> User
-	0, // 4: ChitChatService.ServerToClient:input_type -> ChatMessage
-	1, // 5: ChitChatService.Disconnect:input_type -> User
-	0, // 6: ChitChatService.SendChat:input_type -> ChatMessage
-	1, // 7: ChitChatService.Connect:output_type -> User
-	0, // 8: ChitChatService.Listen:output_type -> ChatMessage
-	3, // 9: ChitChatService.ServerToClient:output_type -> Empty
-	3, // 10: ChitChatService.Disconnect:output_type -> Empty
-	3, // 11: ChitChatService.SendChat:output_type -> Empty
-	7, // [7:12] is the sub-list for method output_type
-	2, // [2:7] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	3, // 0: ChitChatService.Connect:input_type -> Empty
+	1, // 1: ChitChatService.Listen:input_type -> User
+	1, // 2: ChitChatService.Disconnect:input_type -> User
+	0, // 3: ChitChatService.SendChat:input_type -> ChatMessage
+	1, // 4: ChitChatService.Connect:output_type -> User
+	0, // 5: ChitChatService.Listen:output_type -> ChatMessage
+	3, // 6: ChitChatService.Disconnect:output_type -> Empty
+	3, // 7: ChitChatService.SendChat:output_type -> Empty
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
+	0, // [0:0] is the sub-list for extension type_name
+	0, // [0:0] is the sub-list for extension extendee
+	0, // [0:0] is the sub-list for field type_name
 }
 
 func init() { file_grpc_proto_proto_init() }
