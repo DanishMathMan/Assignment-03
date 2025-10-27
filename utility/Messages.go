@@ -3,8 +3,31 @@ package utility
 import (
 	proto "Assignment-03/grpc"
 	"fmt"
+	"unicode/utf8"
 )
 
-func FormatMessage(chatMessage *proto.ChatMessage) string {
-	return fmt.Sprintf("[Client: %d at LT: %d] - %s ", chatMessage.Client, chatMessage.LogicalTimestamp, chatMessage.Message)
+func FormatMessage(message string, timestamp int64, name string) string {
+	return fmt.Sprintf("[%s at LT: %d] - %s ", name, timestamp, message)
+}
+
+func DisconnectMessage(in *proto.Process) string {
+	return fmt.Sprintf("Participant %s left Chit Chat at logical time %d", in.GetName(), in.GetTimestamp())
+}
+
+func ConnectMessage(in *proto.Process) string {
+	return fmt.Sprintf("Participant %s joined Chit Chat at logical time %d", in.GetName(), in.GetTimestamp())
+}
+
+// ValidMessage TODO should return an error
+func ValidMessage(message string) bool {
+
+	if len(message) > 128 {
+		return false
+	}
+
+	if !utf8.ValidString(message) {
+		return false
+	}
+
+	return true
 }

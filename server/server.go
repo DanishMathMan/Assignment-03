@@ -2,11 +2,11 @@ package main
 
 import (
 	proto "Assignment-03/grpc"
+	"Assignment-03/utility"
 	"fmt"
 	"log"
 	"net"
 	"sync"
-	"unicode/utf8"
 
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -14,12 +14,12 @@ import (
 
 type ChitChatServiceServer struct {
 	proto.UnimplementedChitChatServiceServer
-	chatMessages     []*proto.ChatMessage
-	logicalTimestamp int
-	uuidNum          int32
-	nextId           int32
-	connectionPool   map[int32]Connection
-	wg               sync.WaitGroup
+	serverProfile  *proto.Process
+	chatMessages   []*proto.ChatMessage
+	uuidNum        int64
+	nextId         int64
+	connectionPool map[int64]Connection
+	lock           sync.Mutex //mutex only to be used to ensure race conditions on the timestamp are prevented
 }
 
 /*
@@ -30,69 +30,78 @@ https://medium.com/@bhadange.atharv/building-a-real-time-chat-application-with-g
 type Connection struct {
 	proto.UnimplementedChitChatServiceServer
 	stream      proto.ChitChatService_ListenClient
-	user        *proto.User
+	user        *proto.Process
 	messageChan chan *proto.ChatMessage
 }
 
 func (server *ChitChatServiceServer) SendChat(ctx context.Context, in *proto.ChatMessage) (*proto.Empty, error) {
-
-	//Check validity of message
-	if !validMessage(in) {
-		errorMessage := proto.ChatMessage{Message: "Invalid Chat Message", LogicalTimestamp: int64(server.logicalTimestamp)}
-		server.connectionPool[in.Client].messageChan <- &errorMessage
-		return nil, nil
-	}
-
+	utility.RemoteEvent(server.serverProfile, in.GetTimestamp(), &server.lock)
 	for _, conn := range server.connectionPool {
-		fmt.Printf("Sending message: %s to: %d \n", in.Message, conn.user.Id)
+		fmt.Printf("Sending message: %s to: %d \n", in.GetMessage(), conn.user.GetId())
 		conn.messageChan <- in
 	}
 	return nil, nil
 }
 
-func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.Empty) (*proto.User, error) {
+func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.UserName) (*proto.Process, error) {
 	//create a user and log the connection
+	//update server timestamp. Note even though Connect is a rpc call and thus remote, the client has not an established
+	//id or timestamp (which are provided by the server), thus this is treated as a local event
+	timestamp := utility.LocalEvent(server.serverProfile, &server.lock)
+	//id of the new client process
 	id := server.nextId
 	server.nextId++
-	user := proto.User{Id: id}
-	channel := make(chan *proto.ChatMessage, 1)
-	connection := Connection{user: &user, messageChan: channel}
+	//create a representation of the client process
+	user := proto.Process{Id: id, Name: in.GetName(), Timestamp: timestamp}
+	messageChannel := make(chan *proto.ChatMessage, 1)
+	connection := Connection{user: &user, messageChan: messageChannel}
 	server.connectionPool[id] = connection
-	logMsg := proto.ChatMessage{Message: "Someone joined"} //TODO make into LogMessage
-	server.SendChat(ctx, &logMsg)
+	broadcastMsg := proto.ChatMessage{
+		Message:     utility.ConnectMessage(&user),
+		Timestamp:   timestamp,
+		ProcessId:   server.serverProfile.GetTimestamp(),
+		ProcessName: server.serverProfile.GetName(),
+	}
+	server.SendChat(ctx, &broadcastMsg)
 	//return the user
 	return &user, nil //error should
 }
 
-func (server *ChitChatServiceServer) Listen(client *proto.User, stream grpc.ServerStreamingServer[proto.ChatMessage]) error {
+func (server *ChitChatServiceServer) Listen(client *proto.Process, stream grpc.ServerStreamingServer[proto.ChatMessage]) error {
 
 	// TODO listen on message channel and send to stream what the message was
 	for {
-		msg := <-server.connectionPool[client.Id].messageChan
-
-		fmt.Printf("Message in channel: %s \n", msg.Message)
-
-		//TODO check if message is a closing message i.e. the client has disconnected, then stop go routine if it is
+		msg := <-server.connectionPool[client.GetId()].messageChan
 		err := stream.Send(msg)
 		if err != nil {
 			fmt.Println("error in sending message")
 		}
-
-		fmt.Println("Send message via stream")
 	}
 }
 
-func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.User) (*proto.Empty, error) {
-	for _, conn := range server.connectionPool {
-		conn.messageChan <- &proto.ChatMessage{Message: fmt.Sprintf("[Client: %d Left the chat at LT: %d] ", 1, 1), LogicalTimestamp: 1, Client: -1}
-	}
+func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.Process) (*proto.Empty, error) {
+	//TODO log event
+	//update the server timestamp
+	timestamp := utility.RemoteEvent(server.serverProfile, in.GetTimestamp(), &server.lock)
+	//create the message to be broadcast informing user disconnected
+	msg := &proto.ChatMessage{
+		Message:     utility.DisconnectMessage(in),
+		Timestamp:   timestamp,
+		ProcessId:   server.serverProfile.GetId(),
+		ProcessName: server.serverProfile.GetName()}
+	//broadcast user leaving
+	server.SendChat(ctx, msg)
 	return nil, nil
 }
 
 func main() {
 	server := &ChitChatServiceServer{chatMessages: []*proto.ChatMessage{}}
 	server.chatMessages = append(server.chatMessages, &proto.ChatMessage{})
-	server.connectionPool = make(map[int32]Connection)
+	server.connectionPool = make(map[int64]Connection)
+	serverId := server.nextId
+	server.nextId++
+	server.serverProfile = &proto.Process{Id: serverId, Name: "-----ChitChat-----", Timestamp: 0}
+	//TODO log server startup
 	server.startServer()
 }
 
@@ -112,17 +121,4 @@ func (server *ChitChatServiceServer) startServer() {
 	if err != nil {
 		log.Fatalf("Did not work")
 	}
-}
-
-func validMessage(message *proto.ChatMessage) bool {
-
-	if len(message.Message) > 128 {
-		return false
-	}
-
-	if !utf8.ValidString(message.Message) {
-		return false
-	}
-
-	return true
 }

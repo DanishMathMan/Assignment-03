@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.32.1
-// source: grpc/proto.proto
+// source: proto.proto
 
 package proto
 
@@ -23,17 +23,18 @@ const (
 
 // represents a single ChatMessage
 type ChatMessage struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	LogicalTimestamp int64                  `protobuf:"varint,1,opt,name=logical_timestamp,json=logicalTimestamp,proto3" json:"logical_timestamp,omitempty"`
-	Message          string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
-	Client           int32                  `protobuf:"varint,3,opt,name=client,proto3" json:"client,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Timestamp     int64                  `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	ProcessId     int64                  `protobuf:"varint,3,opt,name=process_id,json=processId,proto3" json:"process_id,omitempty"`
+	ProcessName   string                 `protobuf:"bytes,4,opt,name=process_name,json=processName,proto3" json:"process_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ChatMessage) Reset() {
 	*x = ChatMessage{}
-	mi := &file_grpc_proto_proto_msgTypes[0]
+	mi := &file_proto_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -45,7 +46,7 @@ func (x *ChatMessage) String() string {
 func (*ChatMessage) ProtoMessage() {}
 
 func (x *ChatMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_proto_proto_msgTypes[0]
+	mi := &file_proto_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -58,14 +59,7 @@ func (x *ChatMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatMessage.ProtoReflect.Descriptor instead.
 func (*ChatMessage) Descriptor() ([]byte, []int) {
-	return file_grpc_proto_proto_rawDescGZIP(), []int{0}
-}
-
-func (x *ChatMessage) GetLogicalTimestamp() int64 {
-	if x != nil {
-		return x.LogicalTimestamp
-	}
-	return 0
+	return file_proto_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ChatMessage) GetMessage() string {
@@ -75,35 +69,52 @@ func (x *ChatMessage) GetMessage() string {
 	return ""
 }
 
-func (x *ChatMessage) GetClient() int32 {
+func (x *ChatMessage) GetTimestamp() int64 {
 	if x != nil {
-		return x.Client
+		return x.Timestamp
 	}
 	return 0
 }
 
-type User struct {
+func (x *ChatMessage) GetProcessId() int64 {
+	if x != nil {
+		return x.ProcessId
+	}
+	return 0
+}
+
+func (x *ChatMessage) GetProcessName() string {
+	if x != nil {
+		return x.ProcessName
+	}
+	return ""
+}
+
+// represents a user
+type Process struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Timestamp     int64                  `protobuf:"varint,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *User) Reset() {
-	*x = User{}
-	mi := &file_grpc_proto_proto_msgTypes[1]
+func (x *Process) Reset() {
+	*x = Process{}
+	mi := &file_proto_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *User) String() string {
+func (x *Process) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*User) ProtoMessage() {}
+func (*Process) ProtoMessage() {}
 
-func (x *User) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_proto_proto_msgTypes[1]
+func (x *Process) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -114,43 +125,55 @@ func (x *User) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use User.ProtoReflect.Descriptor instead.
-func (*User) Descriptor() ([]byte, []int) {
-	return file_grpc_proto_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use Process.ProtoReflect.Descriptor instead.
+func (*Process) Descriptor() ([]byte, []int) {
+	return file_proto_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *User) GetId() int32 {
+func (x *Process) GetId() int64 {
 	if x != nil {
 		return x.Id
 	}
 	return 0
 }
 
-type LogMessage struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	LogicalTimestamp int64                  `protobuf:"varint,1,opt,name=logical_timestamp,json=logicalTimestamp,proto3" json:"logical_timestamp,omitempty"`
-	ComponentName    string                 `protobuf:"bytes,2,opt,name=component_name,json=componentName,proto3" json:"component_name,omitempty"` //server/client id
-	EventType        string                 `protobuf:"bytes,3,opt,name=event_type,json=eventType,proto3" json:"event_type,omitempty"`             //join, disconnect
-	Identifiers      []int64                `protobuf:"varint,4,rep,packed,name=identifiers,proto3" json:"identifiers,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+func (x *Process) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
 }
 
-func (x *LogMessage) Reset() {
-	*x = LogMessage{}
-	mi := &file_grpc_proto_proto_msgTypes[2]
+func (x *Process) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
+}
+
+// the username the joining participant wants
+type UserName struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserName) Reset() {
+	*x = UserName{}
+	mi := &file_proto_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *LogMessage) String() string {
+func (x *UserName) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*LogMessage) ProtoMessage() {}
+func (*UserName) ProtoMessage() {}
 
-func (x *LogMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_proto_proto_msgTypes[2]
+func (x *UserName) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -161,37 +184,16 @@ func (x *LogMessage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use LogMessage.ProtoReflect.Descriptor instead.
-func (*LogMessage) Descriptor() ([]byte, []int) {
-	return file_grpc_proto_proto_rawDescGZIP(), []int{2}
+// Deprecated: Use UserName.ProtoReflect.Descriptor instead.
+func (*UserName) Descriptor() ([]byte, []int) {
+	return file_proto_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *LogMessage) GetLogicalTimestamp() int64 {
+func (x *UserName) GetName() string {
 	if x != nil {
-		return x.LogicalTimestamp
-	}
-	return 0
-}
-
-func (x *LogMessage) GetComponentName() string {
-	if x != nil {
-		return x.ComponentName
+		return x.Name
 	}
 	return ""
-}
-
-func (x *LogMessage) GetEventType() string {
-	if x != nil {
-		return x.EventType
-	}
-	return ""
-}
-
-func (x *LogMessage) GetIdentifiers() []int64 {
-	if x != nil {
-		return x.Identifiers
-	}
-	return nil
 }
 
 // used for empty requests/responses
@@ -203,7 +205,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_grpc_proto_proto_msgTypes[3]
+	mi := &file_proto_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -215,7 +217,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_proto_proto_msgTypes[3]
+	mi := &file_proto_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -228,60 +230,59 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_grpc_proto_proto_rawDescGZIP(), []int{3}
+	return file_proto_proto_rawDescGZIP(), []int{3}
 }
 
-var File_grpc_proto_proto protoreflect.FileDescriptor
+var File_proto_proto protoreflect.FileDescriptor
 
-const file_grpc_proto_proto_rawDesc = "" +
+const file_proto_proto_rawDesc = "" +
 	"\n" +
-	"\x10grpc/proto.proto\"l\n" +
-	"\vChatMessage\x12+\n" +
-	"\x11logical_timestamp\x18\x01 \x01(\x03R\x10logicalTimestamp\x12\x18\n" +
-	"\amessage\x18\x02 \x01(\tR\amessage\x12\x16\n" +
-	"\x06client\x18\x03 \x01(\x05R\x06client\"\x16\n" +
-	"\x04User\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x05R\x02id\"\xa1\x01\n" +
+	"\vproto.proto\"\x87\x01\n" +
+	"\vChatMessage\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\x12\x1c\n" +
+	"\ttimestamp\x18\x02 \x01(\x03R\ttimestamp\x12\x1d\n" +
 	"\n" +
-	"LogMessage\x12+\n" +
-	"\x11logical_timestamp\x18\x01 \x01(\x03R\x10logicalTimestamp\x12%\n" +
-	"\x0ecomponent_name\x18\x02 \x01(\tR\rcomponentName\x12\x1d\n" +
+	"process_id\x18\x03 \x01(\x03R\tprocessId\x12!\n" +
+	"\fprocess_name\x18\x04 \x01(\tR\vprocessName\"K\n" +
+	"\aProcess\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\x03R\ttimestamp\"\x1e\n" +
+	"\bUserName\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"\a\n" +
+	"\x05Empty2\x97\x01\n" +
+	"\x0fChitChatService\x12\x1e\n" +
+	"\aConnect\x12\t.UserName\x1a\b.Process\x12\"\n" +
+	"\x06Listen\x12\b.Process\x1a\f.ChatMessage0\x01\x12\x1e\n" +
 	"\n" +
-	"event_type\x18\x03 \x01(\tR\teventType\x12 \n" +
-	"\videntifiers\x18\x04 \x03(\x03R\videntifiers\"\a\n" +
-	"\x05Empty2\x8b\x01\n" +
-	"\x0fChitChatService\x12\x18\n" +
-	"\aConnect\x12\x06.Empty\x1a\x05.User\x12\x1f\n" +
-	"\x06Listen\x12\x05.User\x1a\f.ChatMessage0\x01\x12\x1b\n" +
-	"\n" +
-	"Disconnect\x12\x05.User\x1a\x06.Empty\x12 \n" +
+	"Disconnect\x12\b.Process\x1a\x06.Empty\x12 \n" +
 	"\bSendChat\x12\f.ChatMessage\x1a\x06.EmptyB\x1aZ\x18Assignment-03/grpc/protob\x06proto3"
 
 var (
-	file_grpc_proto_proto_rawDescOnce sync.Once
-	file_grpc_proto_proto_rawDescData []byte
+	file_proto_proto_rawDescOnce sync.Once
+	file_proto_proto_rawDescData []byte
 )
 
-func file_grpc_proto_proto_rawDescGZIP() []byte {
-	file_grpc_proto_proto_rawDescOnce.Do(func() {
-		file_grpc_proto_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_grpc_proto_proto_rawDesc), len(file_grpc_proto_proto_rawDesc)))
+func file_proto_proto_rawDescGZIP() []byte {
+	file_proto_proto_rawDescOnce.Do(func() {
+		file_proto_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_proto_proto_rawDesc), len(file_proto_proto_rawDesc)))
 	})
-	return file_grpc_proto_proto_rawDescData
+	return file_proto_proto_rawDescData
 }
 
-var file_grpc_proto_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
-var file_grpc_proto_proto_goTypes = []any{
+var file_proto_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_proto_proto_goTypes = []any{
 	(*ChatMessage)(nil), // 0: ChatMessage
-	(*User)(nil),        // 1: User
-	(*LogMessage)(nil),  // 2: LogMessage
+	(*Process)(nil),     // 1: Process
+	(*UserName)(nil),    // 2: UserName
 	(*Empty)(nil),       // 3: Empty
 }
-var file_grpc_proto_proto_depIdxs = []int32{
-	3, // 0: ChitChatService.Connect:input_type -> Empty
-	1, // 1: ChitChatService.Listen:input_type -> User
-	1, // 2: ChitChatService.Disconnect:input_type -> User
+var file_proto_proto_depIdxs = []int32{
+	2, // 0: ChitChatService.Connect:input_type -> UserName
+	1, // 1: ChitChatService.Listen:input_type -> Process
+	1, // 2: ChitChatService.Disconnect:input_type -> Process
 	0, // 3: ChitChatService.SendChat:input_type -> ChatMessage
-	1, // 4: ChitChatService.Connect:output_type -> User
+	1, // 4: ChitChatService.Connect:output_type -> Process
 	0, // 5: ChitChatService.Listen:output_type -> ChatMessage
 	3, // 6: ChitChatService.Disconnect:output_type -> Empty
 	3, // 7: ChitChatService.SendChat:output_type -> Empty
@@ -292,26 +293,26 @@ var file_grpc_proto_proto_depIdxs = []int32{
 	0, // [0:0] is the sub-list for field type_name
 }
 
-func init() { file_grpc_proto_proto_init() }
-func file_grpc_proto_proto_init() {
-	if File_grpc_proto_proto != nil {
+func init() { file_proto_proto_init() }
+func file_proto_proto_init() {
+	if File_proto_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_proto_proto_rawDesc), len(file_grpc_proto_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_proto_rawDesc), len(file_proto_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_grpc_proto_proto_goTypes,
-		DependencyIndexes: file_grpc_proto_proto_depIdxs,
-		MessageInfos:      file_grpc_proto_proto_msgTypes,
+		GoTypes:           file_proto_proto_goTypes,
+		DependencyIndexes: file_proto_proto_depIdxs,
+		MessageInfos:      file_proto_proto_msgTypes,
 	}.Build()
-	File_grpc_proto_proto = out.File
-	file_grpc_proto_proto_goTypes = nil
-	file_grpc_proto_proto_depIdxs = nil
+	File_proto_proto = out.File
+	file_proto_proto_goTypes = nil
+	file_proto_proto_depIdxs = nil
 }

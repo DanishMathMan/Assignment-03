@@ -4,20 +4,22 @@ option go_package = "Assignment-03/grpc/proto";
 
 //represents a single ChatMessage
 message ChatMessage {
-  int64 logical_timestamp = 1;
-  string message = 2;
-  int32 client = 3;
+  string message = 1;
+  int64 timestamp = 2;
+  int64 process_id = 3;
+  string process_name = 4;
 }
 
-message User{
-  int32 id = 1;
+//represents a user
+message Process{
+  int64 id = 1;
+  string name = 2;
+  int64 timestamp = 3;
 }
 
-message LogMessage {
-  int64 logical_timestamp = 1;
-  string component_name = 2; //server/client id
-  string event_type = 3; //join, disconnect
-  repeated int64 identifiers = 4;
+//the username the joining participant wants
+message UserName{
+  string name = 1;
 }
 
 //used for empty requests/responses
@@ -27,10 +29,10 @@ message Empty{}
 service ChitChatService {
   //user instructs the server they have joined and are continuously receiving messages from the server
   //runs concurrently with other rpc's
-  rpc Connect(Empty) returns (User);
-  rpc Listen(User) returns (stream ChatMessage);
+  rpc Connect(UserName) returns (Process);
+  rpc Listen(Process) returns (stream ChatMessage);
   //user instructs they disconnect, expecting nothing in return. Note the server will then send a message to all other
   //users (in their Connect rpc running concurrently) that the user has disconnecting.
-  rpc Disconnect(User) returns (Empty);
+  rpc Disconnect(Process) returns (Empty);
   rpc SendChat(ChatMessage) returns (Empty);
 }

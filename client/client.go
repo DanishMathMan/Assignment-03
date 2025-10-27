@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -21,8 +22,9 @@ import (
 //Client should disconnect from the server via rpc Disconnect
 
 type ClientProcess struct {
-	logicalTimestamp int
-	client           *proto.User
+	clientProfile *proto.Process
+	lock          sync.Mutex
+	active        bool
 }
 
 func main() {
@@ -34,11 +36,29 @@ func main() {
 
 	// generate connection as new client
 	client := proto.NewChitChatServiceClient(connect)
-	user, _ := client.Connect(context.Background(), &proto.Empty{})
-	clientProcess := ClientProcess{logicalTimestamp: 2, client: user}
+	// ask for a username:
+	fmt.Println("Enter your screen name:")
+	reader := bufio.NewReader(os.Stdin)
+	var name string
+	var errName error
+	for {
+		name, errName = reader.ReadString('\n')
+		if errName != nil {
+			log.Println(errName)
+			fmt.Println("[Please input a valid name]")
+			continue
+		}
+		break
+	}
+	//connect to the server
+	user, _ := client.Connect(context.Background(), &proto.UserName{Name: strings.TrimSpace(name)})
+	clientProcess := ClientProcess{clientProfile: user}
 
+	//go routine for listening for messages from the server using a stream
 	go func() {
-		stream, err := client.Listen(context.Background(), clientProcess.client)
+		stream, err := client.Listen(context.Background(), clientProcess.clientProfile)
+		//make sure context is properly shut down
+		defer stream.Context().Done()
 		if err != nil {
 			fmt.Printf("Error in Listen")
 		}
@@ -49,10 +69,10 @@ func main() {
 				continue
 			}
 			if err != nil {
-				fmt.Println("Error receiving message")
 				break
 			}
-			fmt.Println(utility.FormatMessage(msg))
+			fmt.Println(msg.GetMessage())
+			utility.RemoteEvent(clientProcess.clientProfile, msg.GetTimestamp(), &clientProcess.lock)
 		}
 	}()
 
@@ -64,20 +84,24 @@ func main() {
 			if errSend != nil {
 				log.Println(errSend)
 			}
-			time_stamp := 1 //place holder
+			if !utility.ValidMessage(msg) {
+				fmt.Println("[Message is too long]") //TODO better error message
+			}
+			timestamp := utility.LocalEvent(clientProcess.clientProfile, &clientProcess.lock)
 			if strings.Contains(msg, "--exit") {
 				fmt.Println("Bye")
-				client.Disconnect(context.Background(), &proto.User{})
+				//notify server of disconnect event
+				client.Disconnect(context.Background(), clientProcess.clientProfile)
 				os.Exit(0)
 			}
-			chatMessage := proto.ChatMessage{Message: msg, LogicalTimestamp: int64(time_stamp)}
+			chatMessage := proto.ChatMessage{
+				Message:     utility.FormatMessage(msg, timestamp, clientProcess.clientProfile.Name),
+				Timestamp:   timestamp,
+				ProcessId:   clientProcess.clientProfile.GetId(),
+				ProcessName: clientProcess.clientProfile.GetName()}
 			client.SendChat(context.Background(), &chatMessage)
 		}
 	}()
 
-	//TODO REFACTOR
-	for {
-
-	}
-
+	select {}
 }
