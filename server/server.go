@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -14,12 +13,12 @@ import (
 
 type ChitChatServiceServer struct {
 	proto.UnimplementedChitChatServiceServer
-	serverProfile  *proto.Process
-	chatMessages   []*proto.ChatMessage
-	uuidNum        int64
-	nextId         int64
-	connectionPool map[int64]Connection
-	lock           sync.Mutex //mutex only to be used to ensure race conditions on the timestamp are prevented
+	serverProfile    *proto.Process
+	timestampChannel chan int64
+	chatMessages     []*proto.ChatMessage
+	uuidNum          int64
+	nextId           int64
+	connectionPool   map[int64]Connection
 }
 
 /*
@@ -35,7 +34,7 @@ type Connection struct {
 }
 
 func (server *ChitChatServiceServer) SendChat(ctx context.Context, in *proto.ChatMessage) (*proto.Empty, error) {
-	utility.RemoteEvent(server.serverProfile, in.GetTimestamp(), &server.lock)
+	utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.Timestamp)
 	for _, conn := range server.connectionPool {
 		fmt.Printf("Sending message: %s to: %d \n", in.GetMessage(), conn.user.GetId())
 		conn.messageChan <- in
@@ -47,7 +46,7 @@ func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.User
 	//create a user and log the connection
 	//update server timestamp. Note even though Connect is a rpc call and thus remote, the client has not an established
 	//id or timestamp (which are provided by the server), thus this is treated as a local event
-	timestamp := utility.LocalEvent(server.serverProfile, &server.lock)
+	timestamp := utility.LocalEvent(server.serverProfile, server.timestampChannel)
 	//id of the new client process
 	id := server.nextId
 	server.nextId++
@@ -82,7 +81,7 @@ func (server *ChitChatServiceServer) Listen(client *proto.Process, stream grpc.S
 func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.Process) (*proto.Empty, error) {
 	//TODO log event
 	//update the server timestamp
-	timestamp := utility.RemoteEvent(server.serverProfile, in.GetTimestamp(), &server.lock)
+	timestamp := utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.Timestamp)
 	//create the message to be broadcast informing user disconnected
 	msg := &proto.ChatMessage{
 		Message:     utility.DisconnectMessage(in),
@@ -101,6 +100,8 @@ func main() {
 	serverId := server.nextId
 	server.nextId++
 	server.serverProfile = &proto.Process{Id: serverId, Name: "-----ChitChat-----", Timestamp: 0}
+	server.timestampChannel = make(chan int64, 1)
+	server.timestampChannel <- server.serverProfile.GetTimestamp()
 	//TODO log server startup
 	server.startServer()
 }

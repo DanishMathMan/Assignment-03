@@ -10,7 +10,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -22,9 +21,9 @@ import (
 //Client should disconnect from the server via rpc Disconnect
 
 type ClientProcess struct {
-	clientProfile *proto.Process
-	lock          sync.Mutex
-	active        bool
+	clientProfile    *proto.Process
+	timestampChannel chan int64
+	active           bool
 }
 
 func main() {
@@ -52,8 +51,8 @@ func main() {
 	}
 	//connect to the server
 	user, _ := client.Connect(context.Background(), &proto.UserName{Name: strings.TrimSpace(name)})
-	clientProcess := ClientProcess{clientProfile: user}
-
+	clientProcess := ClientProcess{clientProfile: user, timestampChannel: make(chan int64, 1)}
+	clientProcess.timestampChannel <- clientProcess.clientProfile.Timestamp
 	//go routine for listening for messages from the server using a stream
 	go func() {
 		stream, err := client.Listen(context.Background(), clientProcess.clientProfile)
@@ -72,7 +71,7 @@ func main() {
 				break
 			}
 			fmt.Println(msg.GetMessage())
-			utility.RemoteEvent(clientProcess.clientProfile, msg.GetTimestamp(), &clientProcess.lock)
+			utility.RemoteEvent(clientProcess.clientProfile, clientProcess.timestampChannel, msg.GetTimestamp())
 		}
 	}()
 
@@ -87,7 +86,7 @@ func main() {
 			if !utility.ValidMessage(msg) {
 				fmt.Println("[Message is too long]") //TODO better error message
 			}
-			timestamp := utility.LocalEvent(clientProcess.clientProfile, &clientProcess.lock)
+			timestamp := utility.LocalEvent(clientProcess.clientProfile, clientProcess.timestampChannel)
 			if strings.Contains(msg, "--exit") {
 				fmt.Println("Bye")
 				//notify server of disconnect event
