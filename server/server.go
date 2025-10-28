@@ -8,12 +8,10 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strconv"
 	"sync"
 
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 )
 
 type ChitChatServiceServer struct {
@@ -40,10 +38,15 @@ type Connection struct {
 }
 
 func (server *ChitChatServiceServer) SendChat(ctx context.Context, in *proto.ChatMessage) (*proto.Empty, error) {
-	utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.Timestamp)
+	//log receival of message
+	utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.GetProcessTimestamp())
 	//TODO use context if there is any information in it. Finally log the event
 	wg := sync.WaitGroup{}
-
+	//update timestamp of server in preparation for broadcasting message
+	timestamp := utility.LocalEvent(server.serverProfile, server.timestampChannel)
+	//before broadcasting message, update the processTimestamp field of the message as it indicates the time it was
+	//broadcasted by the server allowing synchronization of timestamps in other process
+	in.ProcessTimestamp = timestamp
 	for _, conn := range server.connectionPool {
 		wg.Go(func() {
 			fmt.Printf("Sending message: %s to: %d \n", in.GetMessage(), conn.user.GetId())
@@ -70,18 +73,23 @@ func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.User
 	server.connectionPool[id] = connection
 
 	server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_CONNECTED, Identifier: id}
-
+	//increment timestamp in preparation for broadcasting message
+	broadcastTimestamp := utility.LocalEvent(server.serverProfile, server.timestampChannel)
 	broadcastMsg := proto.ChatMessage{
-		Message:     utility.ConnectMessage(&user),
-		Timestamp:   timestamp,
-		ProcessId:   server.serverProfile.GetTimestamp(),
-		ProcessName: server.serverProfile.GetName(),
-		MessageType: int64(utility.CONNECT),
+		Message:          utility.ConnectMessage(&user),
+		Timestamp:        timestamp, //of when the connection happened
+		ProcessId:        server.serverProfile.GetTimestamp(),
+		ProcessName:      server.serverProfile.GetName(),
+		MessageType:      int64(utility.CONNECT),
+		ProcessTimestamp: broadcastTimestamp, //of when the server broadcasted the connection message
 	}
-	//give the loggable information to the context, such that logging is done in one place in SendChat. This information
-	//is the server sending a message to the clients informing them another client joined
-	newCtx := metadata.AppendToOutgoingContext(context.Background(), "event_type", string(utility.MESSAGE_SEND), "id", strconv.FormatInt(server.serverProfile.GetId(), 10), "component", string(utility.SERVER))
-	server.SendChat(newCtx, &broadcastMsg)
+	wg := sync.WaitGroup{}
+	for _, conn := range server.connectionPool {
+		wg.Go(func() {
+			conn.messageChan <- &broadcastMsg
+		})
+	}
+	wg.Wait()
 	//return the user
 	return &user, nil //error should
 }
@@ -100,24 +108,30 @@ func (server *ChitChatServiceServer) Listen(client *proto.Process, stream grpc.S
 
 func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.Process) (*proto.Empty, error) {
 	//update the server timestamp
-	timestamp := utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.Timestamp)
+	timestamp := utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.GetTimestamp())
 
 	server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_DISCONNECT, Identifier: in.GetId()}
 
 	//create the message to be broadcast informing user disconnected
 	msg := &proto.ChatMessage{
-		Message:     utility.DisconnectMessage(in),
-		Timestamp:   timestamp,
-		ProcessId:   server.serverProfile.GetId(),
-		ProcessName: server.serverProfile.GetName(),
-		MessageType: int64(utility.DISCONNECT),
+		Message:          utility.DisconnectMessage(in),
+		Timestamp:        in.Timestamp, //the time at which the user disconnected
+		ProcessId:        server.serverProfile.GetId(),
+		ProcessName:      server.serverProfile.GetName(),
+		MessageType:      int64(utility.DISCONNECT),
+		ProcessTimestamp: timestamp, //the time at which the server registered the disconnect message
 	}
 	//broadcast user leaving
 	//give the loggable information to the context, such that logging is done in one place in SendChat. This information
 	//is the server sending a message to the clients informing them another client joined
-	newCtx := metadata.AppendToOutgoingContext(context.Background(), "event_type", string(utility.MESSAGE_SEND), "id", strconv.FormatInt(server.serverProfile.GetId(), 10), "component", string(utility.SERVER))
-	_, err := server.SendChat(newCtx, msg)
-	return nil, err
+	wg := sync.WaitGroup{}
+	for _, conn := range server.connectionPool {
+		wg.Go(func() {
+			conn.messageChan <- msg
+		})
+	}
+	wg.Wait()
+	return nil, nil
 }
 
 func main() {

@@ -82,22 +82,24 @@ func main() {
 		for {
 			msg, err := stream.Recv()
 
-			//Log recieved broadcasted message
-			timestamp := utility.RemoteEvent(clientProcess.clientProfile, clientProcess.timestampChannel, msg.GetTimestamp())
-			clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.MESSAGE_RECEIVED, Identifier: msg.GetProcessId(), MessageContent: msg.GetMessage()}
-
 			if err == io.EOF {
 				continue
 			}
+
 			if err != nil {
 				break
 			}
+
+			//Log recieved broadcasted message
+			timestamp := utility.RemoteEvent(clientProcess.clientProfile, clientProcess.timestampChannel, msg.GetProcessTimestamp())
+			clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.MESSAGE_RECEIVED, Identifier: msg.GetProcessId(), MessageContent: msg.GetMessage()}
+
 			switch msg.GetMessageType() {
 			case int64(utility.CONNECT), int64(utility.DISCONNECT):
 				fmt.Println(msg.GetMessage())
 				break
 			case int64(utility.NORMAL):
-				fmt.Println(utility.FormatMessage(msg.GetMessage(), timestamp, name))
+				fmt.Println(utility.FormatMessage(msg.GetMessage(), msg.GetTimestamp(), name))
 				break
 			default:
 				//TODO error handling, should not receive other types!
@@ -110,6 +112,7 @@ func main() {
 		for {
 			select {
 			case <-doneChannel:
+				//timestamp the local event of closing
 				timestamp := utility.LocalEvent(clientProcess.clientProfile, clientProcess.timestampChannel)
 				fmt.Println("Bye")
 
@@ -140,11 +143,12 @@ func main() {
 					os.Exit(0)
 				}
 				chatMessage := proto.ChatMessage{
-					Message:     msg,
-					Timestamp:   timestamp,
-					ProcessId:   clientProcess.clientProfile.GetId(),
-					ProcessName: clientProcess.clientProfile.GetName(),
-					MessageType: int64(utility.NORMAL),
+					Message:          msg,
+					Timestamp:        timestamp,
+					ProcessId:        clientProcess.clientProfile.GetId(),
+					ProcessName:      clientProcess.clientProfile.GetName(),
+					MessageType:      int64(utility.NORMAL),
+					ProcessTimestamp: timestamp,
 				}
 				client.SendChat(context.Background(), &chatMessage)
 			}

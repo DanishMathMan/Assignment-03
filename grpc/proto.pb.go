@@ -23,14 +23,15 @@ const (
 
 // represents a single ChatMessage
 type ChatMessage struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
-	Timestamp     int64                  `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	ProcessId     int64                  `protobuf:"varint,3,opt,name=process_id,json=processId,proto3" json:"process_id,omitempty"`
-	ProcessName   string                 `protobuf:"bytes,4,opt,name=process_name,json=processName,proto3" json:"process_name,omitempty"`
-	MessageType   int64                  `protobuf:"varint,5,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Message          string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	Timestamp        int64                  `protobuf:"varint,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	ProcessId        int64                  `protobuf:"varint,3,opt,name=process_id,json=processId,proto3" json:"process_id,omitempty"`
+	ProcessName      string                 `protobuf:"bytes,4,opt,name=process_name,json=processName,proto3" json:"process_name,omitempty"`
+	MessageType      int64                  `protobuf:"varint,5,opt,name=message_type,json=messageType,proto3" json:"message_type,omitempty"`
+	ProcessTimestamp int64                  `protobuf:"varint,6,opt,name=process_timestamp,json=processTimestamp,proto3" json:"process_timestamp,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *ChatMessage) Reset() {
@@ -94,6 +95,13 @@ func (x *ChatMessage) GetProcessName() string {
 func (x *ChatMessage) GetMessageType() int64 {
 	if x != nil {
 		return x.MessageType
+	}
+	return 0
+}
+
+func (x *ChatMessage) GetProcessTimestamp() int64 {
+	if x != nil {
+		return x.ProcessTimestamp
 	}
 	return 0
 }
@@ -245,14 +253,15 @@ var File_proto_proto protoreflect.FileDescriptor
 
 const file_proto_proto_rawDesc = "" +
 	"\n" +
-	"\vproto.proto\"\xaa\x01\n" +
+	"\vproto.proto\"\xd7\x01\n" +
 	"\vChatMessage\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x12\x1c\n" +
 	"\ttimestamp\x18\x02 \x01(\x03R\ttimestamp\x12\x1d\n" +
 	"\n" +
 	"process_id\x18\x03 \x01(\x03R\tprocessId\x12!\n" +
 	"\fprocess_name\x18\x04 \x01(\tR\vprocessName\x12!\n" +
-	"\fmessage_type\x18\x05 \x01(\x03R\vmessageType\"K\n" +
+	"\fmessage_type\x18\x05 \x01(\x03R\vmessageType\x12+\n" +
+	"\x11process_timestamp\x18\x06 \x01(\x03R\x10processTimestamp\"K\n" +
 	"\aProcess\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
