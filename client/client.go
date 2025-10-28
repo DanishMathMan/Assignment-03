@@ -56,6 +56,7 @@ func main() {
 	var errName error
 	for {
 		name, errName = reader.ReadString('\n')
+		name = strings.TrimSpace(name)
 		if errName != nil {
 			log.Println(errName)
 			fmt.Println("[Please input a valid name]")
@@ -99,7 +100,7 @@ func main() {
 				fmt.Println(msg.GetMessage())
 				break
 			case int64(utility.NORMAL):
-				fmt.Println(utility.FormatMessage(msg.GetMessage(), msg.GetTimestamp(), name))
+				fmt.Println(utility.FormatMessage(msg.GetMessage(), msg.GetTimestamp(), msg.GetProcessName()))
 				break
 			default:
 				//TODO error handling, should not receive other types!
