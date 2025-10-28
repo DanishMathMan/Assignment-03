@@ -18,11 +18,6 @@ import (
 	"google.golang.org/grpc/metadata"
 )
 
-//Client should be able to make an ID
-//Client should connect to the server via rpc Connect and get a stream of chat messages
-//Client should write a message to the server via rpc SendChat
-//Client should disconnect from the server via rpc Disconnect
-
 type ClientProcess struct {
 	clientProfile    *proto.Process
 	timestampChannel chan int64
@@ -62,14 +57,13 @@ func main() {
 	//create context for chat rpc call
 	ctx := metadata.NewOutgoingContext(context.TODO(), md)
 	stream, err := client.Chat(ctx)
-	defer stream.Context().Done()
 	if err != nil {
 		fmt.Printf("Error in Listen")
 	}
 
 	//go method for listening on stream for messages
 	wg := sync.WaitGroup{}
-	errChan := make(chan error)
+	errChan := make(chan error, 1)
 	wg.Go(func() {
 		for {
 			//take out the timestamp temporarily blocking other routines until message has been handled to prevent race conditions on timestamp
@@ -77,8 +71,7 @@ func main() {
 			in, err := stream.Recv()
 			if err == io.EOF {
 				clientProcess.timestampChannel <- timestamp //nothing was received so it gets back the same timestamp
-				errChan <- nil
-				return
+				continue
 			}
 			//TODO look into possibility of getting a special message that would indicate that the user disconnected or closed stream
 			if err != nil {
@@ -116,9 +109,13 @@ func main() {
 				Timestamp:   timestamp,
 				ProcessId:   clientProcess.clientProfile.GetId(),
 				ProcessName: clientProcess.clientProfile.GetName()}
-			stream.Send(&chatMessage)
+			if err := stream.Send(&chatMessage); err != nil {
+				errChan <- err
+				return
+			}
 		}
 	}()
 
-	select {}
+	wg.Wait()
+	log.Println(<-errChan)
 }

@@ -61,8 +61,7 @@ func (server *ChitChatServiceServer) Chat(stream proto.ChitChatService_ChatServe
 			in, err := stream.Recv()
 			if err == io.EOF {
 				server.timestampChannel <- timestamp //nothing was received so it gets back the same timestamp
-				errChan <- nil
-				return
+				continue
 			}
 			//TODO look into possibility of getting a special message that would indicate that the user disconnected or closed stream
 			if err != nil {
@@ -111,6 +110,7 @@ func (server *ChitChatServiceServer) Chat(stream proto.ChitChatService_ChatServe
 		}
 	})
 	//TODO defer logging of error
+	wg.Wait()
 	return <-errChan
 }
 
