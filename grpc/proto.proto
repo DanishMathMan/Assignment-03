@@ -8,6 +8,7 @@ message ChatMessage {
   int64 timestamp = 2;
   int64 process_id = 3;
   string process_name = 4;
+  int64 message_type = 5;
 }
 
 //represents a user
