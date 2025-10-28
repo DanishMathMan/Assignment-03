@@ -27,12 +27,10 @@ message Empty{}
 
 //the Chit Chat service
 service ChitChatService {
-  //user instructs the server they have joined and are continuously receiving messages from the server
-  //runs concurrently with other rpc's
+  //Connect getting a process id and timestamp set up by the server
   rpc Connect(UserName) returns (Process);
-  rpc Listen(Process) returns (stream ChatMessage);
   //user instructs they disconnect, expecting nothing in return. Note the server will then send a message to all other
   //users (in their Connect rpc running concurrently) that the user has disconnecting.
   rpc Disconnect(Process) returns (Empty);
-  rpc SendChat(ChatMessage) returns (Empty);
+  rpc Chat(stream ChatMessage) returns (stream ChatMessage);
 }

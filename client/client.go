@@ -9,10 +9,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 	"strings"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
 
 //Client should be able to make an ID
@@ -23,6 +26,7 @@ import (
 type ClientProcess struct {
 	clientProfile    *proto.Process
 	timestampChannel chan int64
+	messageChannel   chan *proto.ChatMessage
 	active           bool
 }
 
@@ -53,27 +57,41 @@ func main() {
 	user, _ := client.Connect(context.Background(), &proto.UserName{Name: strings.TrimSpace(name)})
 	clientProcess := ClientProcess{clientProfile: user, timestampChannel: make(chan int64, 1)}
 	clientProcess.timestampChannel <- clientProcess.clientProfile.Timestamp
-	//go routine for listening for messages from the server using a stream
-	go func() {
-		stream, err := client.Listen(context.Background(), clientProcess.clientProfile)
-		//make sure context is properly shut down
-		defer stream.Context().Done()
-		if err != nil {
-			fmt.Printf("Error in Listen")
-		}
-		for {
-			msg, err := stream.Recv()
+	//add metadata of id for a context
+	md := metadata.Pairs("id", strconv.FormatInt(clientProcess.clientProfile.GetId(), 10))
+	//create context for chat rpc call
+	ctx := metadata.NewOutgoingContext(context.TODO(), md)
+	stream, err := client.Chat(ctx)
+	defer stream.Context().Done()
+	if err != nil {
+		fmt.Printf("Error in Listen")
+	}
 
+	//go method for listening on stream for messages
+	wg := sync.WaitGroup{}
+	errChan := make(chan error)
+	wg.Go(func() {
+		for {
+			//take out the timestamp temporarily blocking other routines until message has been handled to prevent race conditions on timestamp
+			timestamp := <-clientProcess.timestampChannel
+			in, err := stream.Recv()
 			if err == io.EOF {
-				continue
+				clientProcess.timestampChannel <- timestamp //nothing was received so it gets back the same timestamp
+				errChan <- nil
+				return
 			}
+			//TODO look into possibility of getting a special message that would indicate that the user disconnected or closed stream
 			if err != nil {
-				break
+				clientProcess.timestampChannel <- timestamp //an error was received so it gets back the same timestamp TODO should probably be incremented and used for log
+				errChan <- err
+				return
 			}
-			fmt.Println(msg.GetMessage())
-			utility.RemoteEvent(clientProcess.clientProfile, clientProcess.timestampChannel, msg.GetTimestamp())
+			//remote message was well received, increment lamport clock accordingly
+			timestamp = max(timestamp, in.GetTimestamp()) + 1
+			clientProcess.timestampChannel <- timestamp
+			fmt.Println(in.GetMessage())
 		}
-	}()
+	})
 
 	//go routine listening for a user input (message) to send to the server
 	go func() {
@@ -98,7 +116,7 @@ func main() {
 				Timestamp:   timestamp,
 				ProcessId:   clientProcess.clientProfile.GetId(),
 				ProcessName: clientProcess.clientProfile.GetName()}
-			client.SendChat(context.Background(), &chatMessage)
+			stream.Send(&chatMessage)
 		}
 	}()
 
