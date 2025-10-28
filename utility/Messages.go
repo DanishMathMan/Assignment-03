@@ -21,7 +21,7 @@ func ConnectMessage(in *proto.Process) string {
 // ValidMessage TODO should return an error
 func ValidMessage(message string) bool {
 
-	if len(message) > 128 {
+	if utf8.RuneCountInString(message) > 128 {
 		return false
 	}
 
