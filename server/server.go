@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -35,10 +36,15 @@ type Connection struct {
 
 func (server *ChitChatServiceServer) SendChat(ctx context.Context, in *proto.ChatMessage) (*proto.Empty, error) {
 	utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.Timestamp)
+	wg := sync.WaitGroup{}
+
 	for _, conn := range server.connectionPool {
-		fmt.Printf("Sending message: %s to: %d \n", in.GetMessage(), conn.user.GetId())
-		conn.messageChan <- in
+		wg.Go(func() {
+			fmt.Printf("Sending message: %s to: %d \n", in.GetMessage(), conn.user.GetId())
+			conn.messageChan <- in
+		})
 	}
+	wg.Wait()
 	return nil, nil
 }
 
