@@ -4,9 +4,8 @@ import (
 	proto "Assignment-03/grpc"
 	"Assignment-03/utility"
 	"bufio"
-	"bytes"
 	"context"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -66,11 +65,14 @@ func main() {
 	}
 	//connect to the server
 	user, _ := client.Connect(context.Background(), &proto.UserName{Name: strings.TrimSpace(name)})
-	clientProcess := ClientProcess{clientProfile: user, timestampChannel: make(chan int64, 1), stoppedChannel: make(chan bool), loggerChannel: make(chan utility.LogStruct, 256), active: false}
+	clientProcess := ClientProcess{clientProfile: user, timestampChannel: make(chan int64, 1), stoppedChannel: make(chan bool, 2), loggerChannel: make(chan utility.LogStruct, 256), active: false}
+
+	//Logger function
+	go clientProcess.Logger()
 
 	//Log connection to server event
-	clientProcess.loggerChannel <- utility.LogStruct{Timestamp: clientProcess.clientProfile.Timestamp, Component: utility.CLIENT, EventType: utility.MESSAGE_RECEIVED, Identifier: clientProcess.clientProfile.Id}
-	clientProcess.timestampChannel <- clientProcess.clientProfile.Timestamp
+	clientProcess.loggerChannel <- utility.LogStruct{Timestamp: clientProcess.clientProfile.GetTimestamp(), Component: utility.CLIENT, EventType: utility.CLIENT_CONNECTED, Identifier: clientProcess.clientProfile.GetId()}
+	clientProcess.timestampChannel <- clientProcess.clientProfile.GetTimestamp()
 
 	//go routine for listening for messages from the server using a stream
 	go func() {
@@ -93,7 +95,7 @@ func main() {
 
 			//Log recieved broadcasted message
 			timestamp := utility.RemoteEvent(clientProcess.clientProfile, clientProcess.timestampChannel, msg.GetProcessTimestamp())
-			clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.MESSAGE_RECEIVED, Identifier: msg.GetProcessId(), MessageContent: msg.GetMessage()}
+			clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.MESSAGE_RECIEVED, Identifier: msg.GetProcessId(), MessageContent: msg.GetMessage()}
 
 			switch msg.GetMessageType() {
 			case int64(utility.CONNECT), int64(utility.DISCONNECT):
@@ -164,12 +166,12 @@ func (client *ClientProcess) Logger() {
 
 	//Create the directory for the client logs
 	err := os.Mkdir("ClientLogs", 0750)
-	if err != nil {
+	if err != nil && !os.IsExist(err) {
 		return
 	}
 
 	//Create the log file for each client
-	f, err := os.OpenFile("Client"+strconv.FormatInt(client.clientProfile.GetId(), 10)+"log.txt", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	f, err := os.OpenFile("ClientLogs/Client"+strconv.FormatInt(client.clientProfile.GetId(), 10)+"log.json", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
 	if err != nil {
 		panic(err)
 	}
@@ -185,13 +187,11 @@ func (client *ClientProcess) Logger() {
 		for {
 			select {
 			case msg := <-client.loggerChannel:
-				b := bytes.Buffer{}
-				enc := gob.NewEncoder(&b)
-				if err := enc.Encode(msg); err != nil {
+				b, err := json.Marshal(msg)
+				if err != nil {
 					panic(err)
 				}
-				serialized := b.Bytes()
-				_, err := logger.Writer().Write(serialized)
+				_, err = logger.Writer().Write(b)
 				if err != nil {
 					panic(err)
 				}

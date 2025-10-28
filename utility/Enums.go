@@ -7,8 +7,8 @@ const (
 	CLIENT_DISCONNECT Event = "Disconnected"
 	SERVER_START      Event = "Server Started"
 	SERVER_STOP       Event = "Server Stopped"
-	MESSAGE_SEND      Event = "Message Send"
-	MESSAGE_RECEIVED  Event = "Message Recieved"
+	BROADCAST         Event = "Broadcasted Message"
+	MESSAGE_RECIEVED  Event = "Message Recieved"
 )
 
 type ComponentType string
@@ -24,4 +24,5 @@ const (
 	NORMAL     MessageType = 0
 	CONNECT    MessageType = 1
 	DISCONNECT MessageType = 2
+	SHUTDOWN   MessageType = 3
 )

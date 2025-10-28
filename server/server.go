@@ -3,7 +3,9 @@ package main
 import (
 	proto "Assignment-03/grpc"
 	"Assignment-03/utility"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -23,6 +25,7 @@ type ChitChatServiceServer struct {
 	nextId           int64
 	connectionPool   map[int64]Connection
 	loggerChannel    chan utility.LogStruct
+	stoppedChannel   chan bool
 }
 
 /*
@@ -32,15 +35,15 @@ https://medium.com/@bhadange.atharv/building-a-real-time-chat-application-with-g
 */
 type Connection struct {
 	proto.UnimplementedChitChatServiceServer
-	stream      proto.ChitChatService_ListenClient
-	user        *proto.Process
-	messageChan chan *proto.ChatMessage
+	user           *proto.Process
+	messageChan    chan *proto.ChatMessage
+	connectionDown chan bool
 }
 
 func (server *ChitChatServiceServer) SendChat(ctx context.Context, in *proto.ChatMessage) (*proto.Empty, error) {
-	//log receival of message
-	utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.GetProcessTimestamp())
-	//TODO use context if there is any information in it. Finally log the event
+	//Logs receival of message
+	tm := utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.GetProcessTimestamp())
+	server.loggerChannel <- utility.LogStruct{Timestamp: tm, Component: utility.SERVER, EventType: utility.MESSAGE_RECIEVED, Identifier: server.serverProfile.GetId(), MessageContent: in.GetMessage()}
 	wg := sync.WaitGroup{}
 	//update timestamp of server in preparation for broadcasting message
 	timestamp := utility.LocalEvent(server.serverProfile, server.timestampChannel)
@@ -54,6 +57,9 @@ func (server *ChitChatServiceServer) SendChat(ctx context.Context, in *proto.Cha
 		})
 	}
 	wg.Wait()
+
+	//Logs when broadcasting a message to clients
+	server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.BROADCAST, Identifier: server.serverProfile.GetId(), MessageContent: in.GetMessage()}
 	return nil, nil
 }
 
@@ -72,6 +78,7 @@ func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.User
 	connection := Connection{user: &user, messageChan: messageChannel}
 	server.connectionPool[id] = connection
 
+	//Logs when client is connected
 	server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_CONNECTED, Identifier: id}
 	//increment timestamp in preparation for broadcasting message
 	broadcastTimestamp := utility.LocalEvent(server.serverProfile, server.timestampChannel)
@@ -90,13 +97,14 @@ func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.User
 		})
 	}
 	wg.Wait()
+
+	//Logs when client connection is broadcasted
+	server.loggerChannel <- utility.LogStruct{Timestamp: broadcastTimestamp, Component: utility.SERVER, EventType: utility.BROADCAST, Identifier: server.serverProfile.GetId(), MessageContent: broadcastMsg.GetMessage()}
 	//return the user
 	return &user, nil //error should
 }
 
 func (server *ChitChatServiceServer) Listen(client *proto.Process, stream grpc.ServerStreamingServer[proto.ChatMessage]) error {
-
-	// TODO listen on message channel and send to stream what the message was
 	for {
 		msg := <-server.connectionPool[client.GetId()].messageChan
 		err := stream.Send(msg)
@@ -110,6 +118,7 @@ func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.P
 	//update the server timestamp
 	timestamp := utility.RemoteEvent(server.serverProfile, server.timestampChannel, in.GetTimestamp())
 
+	//Logs when client disconnects
 	server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_DISCONNECT, Identifier: in.GetId()}
 
 	//create the message to be broadcast informing user disconnected
@@ -145,22 +154,43 @@ func main() {
 	server.timestampChannel <- server.serverProfile.GetTimestamp()
 	server.loggerChannel = make(chan utility.LogStruct, 100)
 
+	//Create the logger
+	go server.Logger()
+
 	//Ensure stopping the server when we get the signal to stop the server
 	doneChannel := make(chan os.Signal, 1)
 	signal.Notify(doneChannel, os.Interrupt)
+	wg := sync.WaitGroup{}
+	wg.Go(func() {
+		for {
+			select {
+			case <-doneChannel:
+				//Logs when server is finished
+				timestamp := utility.LocalEvent(server.serverProfile, server.timestampChannel)
 
-	select {
-	case <-doneChannel:
-		server.loggerChannel <- utility.LogStruct{Timestamp: 0, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: 0}
-		os.Exit(0)
-		return
-	default:
+				wg := sync.WaitGroup{}
+				for _, conn := range server.connectionPool {
+					wg.Go(func() {
+						conn.messageChan <- &proto.ChatMessage{Message: "Server is shutting down. Goodbye!",
+							Timestamp:        timestamp,
+							ProcessId:        server.serverProfile.GetId(),
+							ProcessName:      server.serverProfile.GetName(),
+							MessageType:      int64(utility.SHUTDOWN),
+							ProcessTimestamp: timestamp}
+					})
+				}
+				wg.Wait()
+				server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: 0}
+				os.Exit(0)
+				return
+			}
+		}
+	})
 
-	}
-
+	//Logs when server starts
 	server.loggerChannel <- utility.LogStruct{Timestamp: 0, Component: utility.SERVER, EventType: utility.SERVER_START, Identifier: 0}
-
 	server.startServer()
+	wg.Wait()
 }
 
 func (server *ChitChatServiceServer) startServer() {
@@ -185,4 +215,50 @@ func (server *ChitChatServiceServer) startServer() {
 
 func (server *ChitChatServiceServer) Logger() {
 
+	//Create the directory for the client logs
+	err := os.Mkdir("ServerLogs", 0750)
+	if err != nil && !os.IsExist(err) {
+		return
+	}
+
+	//Create the log file for each client
+	f, err := os.OpenFile("ServerLogs/log.json", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+
+	fmt.Println("Made it past opening the file")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer f.Close()
+
+	//Create the logger object
+	logger := log.New(io.Writer(f), "", 1)
+
+	fmt.Println("Made it past Creating the logger")
+	//Write the message to the file
+	wg := sync.WaitGroup{}
+	wg.Go(func() {
+		for {
+			select {
+			case msg := <-server.loggerChannel:
+				fmt.Println("Got a message")
+				b, err := json.Marshal(msg)
+				if err != nil {
+					panic(err)
+				}
+				_, err = logger.Writer().Write(b)
+				if err != nil {
+					panic(err)
+				}
+			case <-server.stoppedChannel:
+				fmt.Println("Got a stop signal")
+				wg.Done()
+				return
+			default:
+				continue
+			}
+		}
+	})
+	wg.Wait()
 }

@@ -73,11 +73,11 @@ X leaves, the service must broadcast a message of the form:
 delivered to all remaining participants.
 
 
-S7. When a participant receives any broadcast message, it must: i)
+                                S7. When a participant receives any broadcast message, it must: i)
 
-display the message content and its logical timestamp on the client
+                                display the message content and its logical timestamp on the client
 
-interface; and ii) log the message content and its logical timestamp.
+                                interface; and ii) log the message content and its logical timestamp.
 
 
 
@@ -95,11 +95,11 @@ interface; and ii) log the message content and its logical timestamp.
                               definitions.
 
 
-- The Go log standard library must be used for structured logging of
+                            - The Go log standard library must be used for structured logging of
 
-  events (e.g. client join/leave notifications, message delivery, and
+                              events (e.g. client join/leave notifications, message delivery, and
 
-  server startup/shutdown).
+                              server startup/shutdown).
 
 
                             - Concurrency (local to the server or the clients) must be handled
@@ -117,31 +117,31 @@ interface; and ii) log the message content and its logical timestamp.
                               managed by the server.
 
 
-- The system must support multiple concurrent client connections
+                            - The system must support multiple concurrent client connections
 
-  without blocking message delivery.
+                              without blocking message delivery.
 
 
 - The system must log the following events:
 
-  * Server startup and shutdown
+* Server startup and shutdown
 
-  * Client connection and disconnection events
+* Client connection and disconnection events
 
-  * Broadcast of join/leave messages
+* Broadcast of join/leave messages
 
-  * Message delivery events
+* Message delivery events
 
 
-- Log messages must include:
+                            - Log messages must include:
 
-  * Timestamp
+                              * Timestamp
 
-  * Component name (Server/Client)
+                              * Component name (Server/Client)
 
-  * Event type
+                              * Event type
 
-  * Relevant identifiers (e.g. Client ID).
+                              * Relevant identifiers (e.g. Client ID).
 
 
                             - The system can be started with at least three (3) nodes (two client
