@@ -5,7 +5,6 @@ import (
 	"Assignment-03/utility"
 	"bufio"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,7 +12,7 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
-	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -28,8 +27,6 @@ type ClientProcess struct {
 	clientProfile    *proto.Process
 	timestampChannel chan int64
 	active           bool
-	loggerChannel    chan utility.LogStruct
-	stoppedChannel   chan bool
 }
 
 func main() {
@@ -39,10 +36,16 @@ func main() {
 	doneChannel := make(chan os.Signal, 1)
 	signal.Notify(doneChannel, os.Interrupt)
 
+	//Create the directory for the client logs
+	err2 := os.Mkdir("ClientLogs", 0750)
+	if err2 != nil && !os.IsExist(err2) {
+		panic(err2)
+	}
+
 	//Stopped channel is to close our log writer
 
 	if err != nil {
-		log.Fatalf("Not working")
+		panic(err)
 	}
 	defer connect.Close()
 
@@ -57,21 +60,27 @@ func main() {
 		name, errName = reader.ReadString('\n')
 		name = strings.TrimSpace(name)
 		if errName != nil {
-			log.Println(errName)
 			fmt.Println("[Please input a valid name]")
 			continue
 		}
 		break
 	}
+
 	//connect to the server
 	user, _ := client.Connect(context.Background(), &proto.UserName{Name: strings.TrimSpace(name)})
-	clientProcess := ClientProcess{clientProfile: user, timestampChannel: make(chan int64, 1), stoppedChannel: make(chan bool, 2), loggerChannel: make(chan utility.LogStruct, 256), active: false}
+	clientProcess := ClientProcess{clientProfile: user, timestampChannel: make(chan int64, 1)}
 
-	//Logger function
-	go clientProcess.Logger()
+	//Setup logging file and ensure open file
+	f, err := os.OpenFile("ClientLogs/Client"+strconv.FormatInt(clientProcess.clientProfile.GetId(), 10)+"_"+strconv.FormatInt(time.Now().Unix(), 10)+".json", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetFlags(0)
+	log.SetOutput(f)
+	log.Println("[")
 
 	//Log connection to server event
-	clientProcess.loggerChannel <- utility.LogStruct{Timestamp: clientProcess.clientProfile.GetTimestamp(), Component: utility.CLIENT, EventType: utility.CLIENT_CONNECTED, Identifier: clientProcess.clientProfile.GetId()}
+	utility.LogAsJson(utility.LogStruct{Timestamp: clientProcess.clientProfile.GetTimestamp(), Component: utility.CLIENT, EventType: utility.CLIENT_CONNECTED, Identifier: clientProcess.clientProfile.GetId()}, true)
 	clientProcess.timestampChannel <- clientProcess.clientProfile.GetTimestamp()
 
 	//go routine for listening for messages from the server using a stream
@@ -95,7 +104,7 @@ func main() {
 
 			//Log recieved broadcasted message
 			timestamp := utility.RemoteEvent(clientProcess.clientProfile, clientProcess.timestampChannel, msg.GetProcessTimestamp())
-			clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.MESSAGE_RECIEVED, Identifier: msg.GetProcessId(), MessageContent: msg.GetMessage()}
+			utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.MESSAGE_RECIEVED, Identifier: msg.GetProcessId(), MessageContent: msg.GetMessage()}, true)
 
 			switch msg.GetMessageType() {
 			case int64(utility.CONNECT), int64(utility.DISCONNECT):
@@ -107,7 +116,7 @@ func main() {
 			case int64(utility.SHUTDOWN):
 				fmt.Println(msg.GetMessage())
 				timestamp = utility.LocalEvent(clientProcess.clientProfile, clientProcess.timestampChannel)
-				clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: msg.GetProcessId()}
+				utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: msg.GetProcessId()}, true)
 				os.Exit(1)
 			default:
 				panic("Unknown message type")
@@ -125,17 +134,18 @@ func main() {
 				fmt.Println("Bye")
 
 				//Log the disconnection
-				clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_DISCONNECT, Identifier: clientProcess.clientProfile.GetId()}
+				utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_DISCONNECT, Identifier: clientProcess.clientProfile.GetId()}, false)
+				log.Println("]")
 				//notify server of disconnect event
 				client.Disconnect(context.Background(), clientProcess.clientProfile)
-				clientProcess.stoppedChannel <- true
 				os.Exit(1)
 				return
 			default:
 				reader := bufio.NewReader(os.Stdin)
 				msg, errSend := reader.ReadString('\n')
 				if errSend != nil {
-					log.Println(errSend)
+					//should ideally be handled
+					continue
 				}
 				if !utility.ValidMessage(msg) {
 					fmt.Println("[Message is too long]") //TODO better error message
@@ -144,10 +154,10 @@ func main() {
 				if strings.Contains(msg, "--exit") {
 					fmt.Println("Bye")
 					//Log the disconnection
-					clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_DISCONNECT, Identifier: clientProcess.clientProfile.GetId()}
+					utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_DISCONNECT, Identifier: clientProcess.clientProfile.GetId()}, false)
+					log.Println("]")
 					//notify server of disconnect event
 					client.Disconnect(context.Background(), clientProcess.clientProfile)
-					clientProcess.stoppedChannel <- true
 					os.Exit(0)
 				}
 				chatMessage := proto.ChatMessage{
@@ -165,48 +175,4 @@ func main() {
 
 	select {}
 
-}
-
-func (client *ClientProcess) Logger() {
-
-	//Create the directory for the client logs
-	err := os.Mkdir("ClientLogs", 0750)
-	if err != nil && !os.IsExist(err) {
-		return
-	}
-
-	//Create the log file for each client
-	f, err := os.OpenFile("ClientLogs/Client"+strconv.FormatInt(client.clientProfile.GetId(), 10)+"log.json", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
-	if err != nil {
-		panic(err)
-	}
-
-	defer f.Close()
-
-	//Create the logger object
-	logger := log.New(io.Writer(f), "", 1)
-
-	//Write the message to the file
-	wg := sync.WaitGroup{}
-	wg.Go(func() {
-		for {
-			select {
-			case msg := <-client.loggerChannel:
-				b, err := json.Marshal(msg)
-				if err != nil {
-					panic(err)
-				}
-				_, err = logger.Writer().Write(b)
-				if err != nil {
-					panic(err)
-				}
-			case <-client.stoppedChannel:
-				wg.Done()
-				return
-			default:
-				continue
-			}
-		}
-	})
-	wg.Wait()
 }
