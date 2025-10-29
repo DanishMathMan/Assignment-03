@@ -146,6 +146,10 @@ func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.P
 		})
 	}
 	wg.Wait()
+
+	//Log broadcasting of server sending out disconnect message
+	utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.BROADCAST, Identifier: in.GetId(), MessageContent: msg.Message}, true)
+
 	return nil, nil
 }
 
