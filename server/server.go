@@ -139,6 +139,7 @@ func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.P
 	//give the loggable information to the context, such that logging is done in one place in SendChat. This information
 	//is the server sending a message to the clients informing them another client joined
 	wg := sync.WaitGroup{}
+	delete(server.connectionPool, in.GetId())
 	for _, conn := range server.connectionPool {
 		wg.Go(func() {
 			conn.messageChan <- msg
