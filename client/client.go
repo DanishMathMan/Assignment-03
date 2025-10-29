@@ -104,8 +104,13 @@ func main() {
 			case int64(utility.NORMAL):
 				fmt.Println(utility.FormatMessage(msg.GetMessage(), msg.GetTimestamp(), msg.GetProcessName()))
 				break
+			case int64(utility.SHUTDOWN):
+				fmt.Println(msg.GetMessage())
+				timestamp = utility.LocalEvent(clientProcess.clientProfile, clientProcess.timestampChannel)
+				clientProcess.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: msg.GetProcessId()}
+				os.Exit(1)
 			default:
-				//TODO error handling, should not receive other types!
+				panic("Unknown message type")
 			}
 		}
 	}()

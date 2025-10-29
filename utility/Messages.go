@@ -18,6 +18,10 @@ func ConnectMessage(in *proto.Process) string {
 	return fmt.Sprintf("Participant %s joined Chit Chat at logical time %d", in.GetName(), in.GetTimestamp())
 }
 
+func ShutdownMessage(in *proto.Process) string {
+	return fmt.Sprintf("Server shutdown at %d", in.GetTimestamp())
+}
+
 // ValidMessage TODO should return an error
 func ValidMessage(message string) bool {
 

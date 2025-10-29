@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 
 	context "golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -75,7 +76,7 @@ func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.User
 	//create a representation of the client process
 	user := proto.Process{Id: id, Name: in.GetName(), Timestamp: timestamp}
 	messageChannel := make(chan *proto.ChatMessage, 1)
-	connection := Connection{user: &user, messageChan: messageChannel}
+	connection := Connection{user: &user, messageChan: messageChannel, connectionDown: make(chan bool, 1)}
 	server.connectionPool[id] = connection
 
 	//Logs when client is connected
@@ -107,9 +108,14 @@ func (server *ChitChatServiceServer) Connect(ctx context.Context, in *proto.User
 func (server *ChitChatServiceServer) Listen(client *proto.Process, stream grpc.ServerStreamingServer[proto.ChatMessage]) error {
 	for {
 		msg := <-server.connectionPool[client.GetId()].messageChan
+
 		err := stream.Send(msg)
 		if err != nil {
 			fmt.Println("error in sending message")
+		}
+		if msg.GetMessageType() == int64(utility.SHUTDOWN) {
+			server.connectionPool[client.GetId()].connectionDown <- true
+			return nil
 		}
 	}
 }
@@ -160,6 +166,7 @@ func main() {
 	//Ensure stopping the server when we get the signal to stop the server
 	doneChannel := make(chan os.Signal, 1)
 	signal.Notify(doneChannel, os.Interrupt)
+
 	wg := sync.WaitGroup{}
 	wg.Go(func() {
 		for {
@@ -168,19 +175,25 @@ func main() {
 				//Logs when server is finished
 				timestamp := utility.LocalEvent(server.serverProfile, server.timestampChannel)
 
-				wg := sync.WaitGroup{}
+				wg2 := sync.WaitGroup{}
 				for _, conn := range server.connectionPool {
-					wg.Go(func() {
-						conn.messageChan <- &proto.ChatMessage{Message: "Server is shutting down. Goodbye!",
+					wg2.Go(func() {
+						conn.messageChan <- &proto.ChatMessage{Message: utility.ShutdownMessage(server.serverProfile),
 							Timestamp:        timestamp,
 							ProcessId:        server.serverProfile.GetId(),
 							ProcessName:      server.serverProfile.GetName(),
 							MessageType:      int64(utility.SHUTDOWN),
 							ProcessTimestamp: timestamp}
 					})
+					<-conn.connectionDown
 				}
-				wg.Wait()
-				server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: 0}
+				//Log broadcasting the shutdown to clients in server logs
+				server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.BROADCAST, Identifier: server.serverProfile.GetId(), MessageContent: "Server is shutting down. Goodbye!"}
+
+				//Log shutdown of server
+				wg2.Wait()
+				server.loggerChannel <- utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: server.serverProfile.GetId()}
+				time.Sleep(3 * time.Second)
 				os.Exit(0)
 				return
 			}
