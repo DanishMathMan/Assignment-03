@@ -116,7 +116,8 @@ func main() {
 			case int64(utility.SHUTDOWN):
 				fmt.Println(msg.GetMessage())
 				timestamp = utility.LocalEvent(clientProcess.clientProfile, clientProcess.timestampChannel)
-				utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: msg.GetProcessId()}, true)
+				utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.SERVER_STOP, Identifier: msg.GetProcessId()}, false)
+				log.Println("]")
 				os.Exit(1)
 			default:
 				panic("Unknown message type")

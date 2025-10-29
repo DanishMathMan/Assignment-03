@@ -126,6 +126,8 @@ func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.P
 	//Logs when client disconnects
 	utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.CLIENT, EventType: utility.CLIENT_DISCONNECT, Identifier: in.GetId()}, true)
 
+	//increment timestamp in preparation for broadcasting message. This is done here because the sendChat method normally does this
+	timestamp = utility.LocalEvent(server.serverProfile, server.timestampChannel)
 	//create the message to be broadcast informing user disconnected
 	msg := &proto.ChatMessage{
 		Message:          utility.DisconnectMessage(in),
@@ -135,6 +137,9 @@ func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.P
 		MessageType:      int64(utility.DISCONNECT),
 		ProcessTimestamp: timestamp, //the time at which the server registered the disconnect message
 	}
+
+	//Log broadcasting of server sending out disconnect message
+	utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.BROADCAST, Identifier: in.GetId(), MessageContent: msg.Message}, true)
 	//broadcast user leaving
 	//give the loggable information to the context, such that logging is done in one place in SendChat. This information
 	//is the server sending a message to the clients informing them another client joined
@@ -146,9 +151,6 @@ func (server *ChitChatServiceServer) Disconnect(ctx context.Context, in *proto.P
 		})
 	}
 	wg.Wait()
-
-	//Log broadcasting of server sending out disconnect message
-	utility.LogAsJson(utility.LogStruct{Timestamp: timestamp, Component: utility.SERVER, EventType: utility.BROADCAST, Identifier: in.GetId(), MessageContent: msg.Message}, true)
 
 	return nil, nil
 }
