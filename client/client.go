@@ -85,6 +85,8 @@ func main() {
 
 	//go routine for listening for messages from the server using a stream
 	go func() {
+		//we consider the Listen rpc to be happening at the same timestamp as the connection,
+		//because of the asynchronous nature of the server and client go routines, but ideally should be logged separately
 		stream, err := client.Listen(context.Background(), clientProcess.clientProfile)
 		//make sure context is properly shut down
 		defer stream.Context().Done()

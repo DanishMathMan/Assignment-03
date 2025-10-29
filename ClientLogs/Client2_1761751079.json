@@ -1,0 +1,72 @@
+[
+{
+	"Timestamp": 3,
+	"Component": "[CLIENT]",
+	"EventType": "Connected",
+	"Identifier": 2,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 5,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 4,
+	"MessageContent": "Participant Client2 joined Chit Chat at logical time 3"
+},
+{
+	"Timestamp": 9,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 1,
+	"MessageContent": "Hi from client1\r\n"
+},
+{
+	"Timestamp": 13,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 2,
+	"MessageContent": "Hi from client2\r\n"
+},
+{
+	"Timestamp": 15,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 14,
+	"MessageContent": "Participant Client3 joined Chit Chat at logical time 13"
+},
+{
+	"Timestamp": 19,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 3,
+	"MessageContent": "Hi from client3\r\n"
+},
+{
+	"Timestamp": 23,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 0,
+	"MessageContent": "Participant Client1 left Chit Chat at logical time 20"
+},
+{
+	"Timestamp": 27,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 0,
+	"MessageContent": "Participant Client3 left Chit Chat at logical time 24"
+},
+{
+	"Timestamp": 28,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 0,
+	"MessageContent": "Server shutdown at 27"
+},
+{
+	"Timestamp": 29,
+	"Component": "[SERVER]",
+	"EventType": "Server Stopped",
+	"Identifier": 0,
+	"MessageContent": ""
+}
+]

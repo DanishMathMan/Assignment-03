@@ -1,0 +1,58 @@
+[
+{
+	"Timestamp": 1,
+	"Component": "[CLIENT]",
+	"EventType": "Connected",
+	"Identifier": 1,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 3,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 2,
+	"MessageContent": "Participant Client1 joined Chit Chat at logical time 1"
+},
+{
+	"Timestamp": 5,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 4,
+	"MessageContent": "Participant Client2 joined Chit Chat at logical time 3"
+},
+{
+	"Timestamp": 9,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 1,
+	"MessageContent": "Hi from client1\r\n"
+},
+{
+	"Timestamp": 13,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 2,
+	"MessageContent": "Hi from client2\r\n"
+},
+{
+	"Timestamp": 15,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 14,
+	"MessageContent": "Participant Client3 joined Chit Chat at logical time 13"
+},
+{
+	"Timestamp": 19,
+	"Component": "[CLIENT]",
+	"EventType": "Message Recieved",
+	"Identifier": 3,
+	"MessageContent": "Hi from client3\r\n"
+},
+{
+	"Timestamp": 20,
+	"Component": "[CLIENT]",
+	"EventType": "Disconnected",
+	"Identifier": 1,
+	"MessageContent": ""
+}
+]

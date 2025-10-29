@@ -1,0 +1,135 @@
+[
+{
+	"Timestamp": 0,
+	"Component": "[SERVER]",
+	"EventType": "Server Started",
+	"Identifier": 0,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 1,
+	"Component": "[CLIENT]",
+	"EventType": "Connected",
+	"Identifier": 1,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 2,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 0,
+	"MessageContent": "Participant Client1 joined Chit Chat at logical time 1"
+},
+{
+	"Timestamp": 3,
+	"Component": "[CLIENT]",
+	"EventType": "Connected",
+	"Identifier": 2,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 4,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 0,
+	"MessageContent": "Participant Client2 joined Chit Chat at logical time 3"
+},
+{
+	"Timestamp": 7,
+	"Component": "[SERVER]",
+	"EventType": "Message Recieved",
+	"Identifier": 0,
+	"MessageContent": "Hi from client1\r\n"
+},
+{
+	"Timestamp": 8,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 0,
+	"MessageContent": "Hi from client1\r\n"
+},
+{
+	"Timestamp": 11,
+	"Component": "[SERVER]",
+	"EventType": "Message Recieved",
+	"Identifier": 0,
+	"MessageContent": "Hi from client2\r\n"
+},
+{
+	"Timestamp": 12,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 0,
+	"MessageContent": "Hi from client2\r\n"
+},
+{
+	"Timestamp": 13,
+	"Component": "[CLIENT]",
+	"EventType": "Connected",
+	"Identifier": 3,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 14,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 0,
+	"MessageContent": "Participant Client3 joined Chit Chat at logical time 13"
+},
+{
+	"Timestamp": 17,
+	"Component": "[SERVER]",
+	"EventType": "Message Recieved",
+	"Identifier": 0,
+	"MessageContent": "Hi from client3\r\n"
+},
+{
+	"Timestamp": 18,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 0,
+	"MessageContent": "Hi from client3\r\n"
+},
+{
+	"Timestamp": 21,
+	"Component": "[CLIENT]",
+	"EventType": "Disconnected",
+	"Identifier": 1,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 22,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 1,
+	"MessageContent": "Participant Client1 left Chit Chat at logical time 20"
+},
+{
+	"Timestamp": 25,
+	"Component": "[CLIENT]",
+	"EventType": "Disconnected",
+	"Identifier": 3,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 26,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 3,
+	"MessageContent": "Participant Client3 left Chit Chat at logical time 24"
+},
+{
+	"Timestamp": 27,
+	"Component": "[SERVER]",
+	"EventType": "Broadcasted Message",
+	"Identifier": 0,
+	"MessageContent": "Server is shutting down. Goodbye!"
+},
+{
+	"Timestamp": 27,
+	"Component": "[SERVER]",
+	"EventType": "Server Stopped",
+	"Identifier": 0,
+	"MessageContent": ""
+}
+]

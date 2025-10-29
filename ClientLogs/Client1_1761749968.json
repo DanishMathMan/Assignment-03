@@ -1,0 +1,23 @@
+[
+{
+	"Timestamp": 1,
+	"Component": "[CLIENT]",
+	"EventType": "Connected",
+	"Identifier": 1,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 2,
+	"Component": "[CLIENT]",
+	"EventType": "Listening",
+	"Identifier": 1,
+	"MessageContent": ""
+},
+{
+	"Timestamp": 3,
+	"Component": "[CLIENT]",
+	"EventType": "Disconnected",
+	"Identifier": 1,
+	"MessageContent": ""
+}
+]
